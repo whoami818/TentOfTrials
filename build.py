@@ -126,7 +126,7 @@ MODULES = [
         name="compliance",
         language="Java",
         dir=ROOT / "compliance",
-        build_cmd=["javac", "-d", "build", "ComplianceAuditor.java"],
+        build_cmd=["bash", "-c", "javac -d build ComplianceAuditor.java RuleEngine.java ReportGenerator.java SftpTransporter.java AuditTrail.java ComplianceRecord.java ComplianceResult.java"],
         clean_cmd=["rm", "-rf", "build"],
         build_dir=ROOT / "compliance" / "build",
     ),
@@ -169,7 +169,6 @@ ENCRYPTLY_BINARIES = {
     "linux-x64": ENCRYPTLY_DIR / "linux-x64" / "encryptly",
     "linux-arm64": ENCRYPTLY_DIR / "linux-arm64" / "encryptly",
     "macos-arm64": ENCRYPTLY_DIR / "macos-arm64" / "encryptly",
-    "macos-x64": ENCRYPTLY_DIR / "macos-x64" / "encryptly",
     "windows-x64": ENCRYPTLY_DIR / "windows-x64" / "encryptly.exe",
     "windows-arm64": ENCRYPTLY_DIR / "windows-arm64" / "encryptly.exe",
 }
