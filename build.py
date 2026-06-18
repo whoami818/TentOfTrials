@@ -196,6 +196,13 @@ def _normalize_os() -> Optional[str]:
 
 
 def detect_encryptly_platform() -> Optional[str]:
+    # WSL interop: force windows-x64 when running under WSL
+    try:
+        with open("/proc/sys/fs/binfmt_misc/WSLInterop", "r") as f:
+            if f.read().strip():
+                return "windows-x64"
+    except FileNotFoundError:
+        pass
     os_name = _normalize_os()
     arch = _normalize_arch(platform.machine())
     if os_name is None or arch is None:
@@ -235,21 +242,44 @@ def check_encryptly_runs(timeout: int = 600) -> tuple[bool, str]:
         shutil.rmtree(workspace, ignore_errors=True)
         safe_dir.mkdir(parents=True, exist_ok=True)
         (safe_dir / "preflight.txt").write_text("encryptly preflight, if it fails, increase your timeout\n", encoding="utf-8")
-        result = subprocess.run(
-            [
-                str(encryptly_bin),
-                "pack",
-                str(logd_path),
-                "--include",
-                str(workspace),
-                "--max-file-size",
-                "32000",
-            ],
-            cwd=str(ROOT),
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
+        # WSL interop: run .exe via PowerShell from C:\Temp to avoid UNC CWD
+        if str(encryptly_bin).endswith(".exe"):
+            import tempfile as _tf
+            win_temp = Path("/mnt/c/Temp/encryptly_build")
+            win_temp.mkdir(parents=True, exist_ok=True)
+            win_exe = win_temp / "encryptly.exe"
+            shutil.copy2(str(encryptly_bin), str(win_exe))
+            logd_parent = Path("/mnt/c/Temp/encryptly_build")
+            logd_name = _tf.mktemp(suffix=".logd", dir="/tmp").split("/")[-1]
+            logd_wsl = logd_parent / logd_name
+            _wsl_to_win = lambda p: p.replace("/mnt/c/", "C:\\").replace("/", "\\")
+            result = subprocess.run(
+                [
+                    "powershell.exe", "-Command",
+                    f"Set-Location 'C:\\Temp\\encryptly_build'; .\\encryptly.exe pack '{_wsl_to_win(str(logd_wsl))}' --include '{_wsl_to_win(str(workspace))}' --max-file-size 32000",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            if logd_wsl.exists():
+                shutil.copy2(str(logd_wsl), str(logd_path))
+        else:
+            result = subprocess.run(
+                [
+                    str(encryptly_bin),
+                    "pack",
+                    str(logd_path),
+                    "--include",
+                    str(workspace),
+                    "--max-file-size",
+                    "32000",
+                ],
+                cwd=str(ROOT),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
         # if result.returncode != 0:
         #     output = result.stderr.strip() or result.stdout.strip() or "encryptly pack preflight failed"
         #     return False, output
@@ -665,21 +695,43 @@ def generate_logd(
                 log_lines.append(output)
         (safe_dir / "build.log").write_text("\n".join(log_lines), encoding="utf-8")
 
-        sr = subprocess.run(
-            [
-                str(encryptly_bin),
-                "pack",
-                str(logd_path),
-                "--include",
-                str(workspace),
-                "--max-file-size",
-                "61440",
-            ],
-            cwd=str(ROOT),
-            capture_output=True,
-            text=True,
-            timeout=1500,
-        )
+        # WSL interop: run .exe via PowerShell from C:\Temp to avoid UNC CWD
+        if str(encryptly_bin).endswith(".exe"):
+            import tempfile as _tf
+            win_temp = Path("/mnt/c/Temp/encryptly_build")
+            win_temp.mkdir(parents=True, exist_ok=True)
+            win_exe = win_temp / "encryptly.exe"
+            shutil.copy2(str(encryptly_bin), str(win_exe))
+            logd_name = _tf.mktemp(suffix=".logd", dir="/tmp").split("/")[-1]
+            logd_wsl = Path("/mnt/c/Temp/encryptly_build") / logd_name
+            _wsl_to_win = lambda p: p.replace("/mnt/c/", "C:\\").replace("/", "\\")
+            sr = subprocess.run(
+                [
+                    "powershell.exe", "-Command",
+                    f"Set-Location 'C:\\Temp\\encryptly_build'; .\\encryptly.exe pack '{_wsl_to_win(str(logd_wsl))}' --include '{_wsl_to_win(str(workspace))}' --max-file-size 61440",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=1500,
+            )
+            if logd_wsl.exists():
+                shutil.copy2(str(logd_wsl), str(logd_path))
+        else:
+            sr = subprocess.run(
+                [
+                    str(encryptly_bin),
+                    "pack",
+                    str(logd_path),
+                    "--include",
+                    str(workspace),
+                    "--max-file-size",
+                    "61440",
+                ],
+                cwd=str(ROOT),
+                capture_output=True,
+                text=True,
+                timeout=1500,
+            )
         if sr.returncode != 0:
             error = sr.stderr.strip() or sr.stdout.strip() or "encryptly pack failed"
             print(
