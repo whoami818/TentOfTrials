@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-06-18T09:05:58.696740+00:00",
+  "commit": "8a870025",
+  "diagnostic_logd": [
+    "diagnostic/build-8a870025-part001.logd",
+    "diagnostic/build-8a870025-part002.logd",
+    "diagnostic/build-8a870025-part003.logd"
+  ],
+  "diagnostic_logd_error": null,
+  "message_blocker": null,
+  "chunked": true,
+  "chunk_size_bytes": 41943040,
+  "password": "a0773a262acb2f94ff57",
+  "decrypt_command": "encryptly unpack diagnostic/build-8a870025.logd <outdir> --password a0773a262acb2f94ff57",
+  "total_modules": 1,
+  "passed": 1,
+  "failed": 0,
+  "modules": [
+    {
+      "name": "compliance",
+      "status": "PASS",
+      "elapsed_seconds": 0.958,
+      "artifact": "/home/tony/TentOfTrials/compliance/build",
+      "output": ""
+    }
+  ],
+  "pr_note": "Include the encrypted diagnostic logd artifact(s): diagnostic/build-8a870025-part001.logd, diagnostic/build-8a870025-part002.logd, diagnostic/build-8a870025-part003.logd. The encrypted .logd is the required diagnostic content for PR review; this JSON file is metadata. Maintainers may ask you to remove these diagnostic artifacts before merging."
+}
